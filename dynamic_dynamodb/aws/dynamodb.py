@@ -575,7 +575,73 @@ def table_gsis(table_name):
 
     return []
 
+def ensure_created(table_name, template_table_name):
+    """ Ensure table has been created in DynamoDB based on given template table name
+    
+    :type table_name: str
+    :param table_name: Name of the DynamoDB table
+    :type template_table_name: str
+    :param template_table_name: Name of the template DynamoDB table (that has hashkey, attribute definitions)
+    """
+    try:
+        desc = DYNAMODB_CONNECTION.describe_table(table_name)[u'Table']
+    except JSONResponseError:
+        try :
+           template_table = get_table( template_table_name )
+           template_table.describe()
+           logger.info(
+               '{0} - Create table with template table schema {1}, throughput {2}, indexes {3}, global_indexes {4}'.format(
+            table_name, template_table.schema, template_table.throughput, template_table.indexes, template_table.global_indexes))
 
+           # Return if dry-run
+           if get_global_option('dry_run'):
+              return
+
+           table = Table.create(table_name, schema=template_table.schema, 
+              throughput=template_table.throughput, indexes=template_table.indexes,
+              global_indexes=template_table.global_indexes, 
+              connection=DYNAMODB_CONNECTION)
+               
+        except DynamoDBResponseError:
+           dynamodb_error = error.body['__type'].rsplit('#', 1)[1]
+           if dynamodb_error == 'ResourceNotFoundException':
+              logger.error(
+                '{0} - Table {1} not found'.format(table_name, table_name))
+           raise
+
+def exists(table_name):
+    """ Returns whether the table exists
+    
+    :type table_name: str
+    :param table_name: Name of the DynamoDB table
+    :returns: boolean -- If the table exists
+    """
+    try:
+        desc = DYNAMODB_CONNECTION.describe_table(table_name)[u'Table']
+        return True
+    except JSONResponseError:
+        return False
+
+def ensure_deleted(table_name):
+    """ Ensure table has been deleted from DynamoDB
+    
+    :type table_name: str
+    :param table_name: Name of the DynamoDB table
+    """
+    try:
+        desc = DYNAMODB_CONNECTION.describe_table(table_name)[u'Table']
+        logger.info(
+          '{0} - Deleting table'.format(
+           table_name))
+
+        # Return if dry-run
+        if get_global_option('dry_run'):
+           return
+           
+        DYNAMODB_CONNECTION.delete_table(table_name)
+    except JSONResponseError:
+        return
+                      
 def __get_connection_dynamodb(retries=3):
     """ Ensure connection to DynamoDB
 

@@ -15,7 +15,23 @@ def get_configured_tables():
     except KeyError:
         return []
 
+def get_configured_rotated_key_names():
+    """ Returns the list of all configured tables that should be rotated
+    
+    :returns: list -- List of tables
+    """
+    try:
+        rotated_key_names = set()
+        for key_name in CONFIGURATION['tables'].keys():
+            key_config = CONFIGURATION['tables'][key_name]            
+            if 'rotate_suffix' in key_config:
+               rotated_key_names.add( key_name )
 
+        return rotated_key_names                
+    except KeyError:
+         return []
+         
+         
 def get_global_option(option):
     """ Returns the value of the option
 

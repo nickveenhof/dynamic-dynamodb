@@ -239,6 +239,24 @@ TABLE_CONFIG_OPTIONS = [
         'option': 'lookback-window-start',
         'required': False,
         'type': 'int'
+    },
+    {
+    	'key': 'rotate_suffix',
+    	'option': 'rotate_suffix',
+    	'required': False,
+    	'type': 'str'
+    },
+    {
+    	'key': 'rotate_interval',
+    	'option': 'rotate_interval',
+    	'required': False,
+    	'type': 'int'
+    },
+    {
+    	'key': 'rotate_scavenge',
+    	'option': 'rotate_scavenge',
+    	'required': False,
+    	'type': 'int'
     }
 ]
 
@@ -263,6 +281,7 @@ def __parse_options(config_file, section, options):
     """
     configuration = {}
     for option in options:
+
         try:
             if option.get('type') == 'str':
                 configuration[option.get('key')] = \

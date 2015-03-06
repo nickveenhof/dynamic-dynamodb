@@ -67,7 +67,10 @@ DEFAULT_OPTIONS = {
         'lookback_window_start': 15,
         'maintenance_windows': None,
         'sns_topic_arn': None,
-        'sns_message_types': []
+        'sns_message_types': [],
+        'rotate_suffix': None,
+        'rotate_interval': None,
+        'rotate_scavenge': None
     },
     'gsi': {
         'reads-upper-alarm-threshold': 0,
@@ -169,7 +172,6 @@ def __get_cmd_table_options(cmd_line_options):
 
     for option in DEFAULT_OPTIONS['table'].keys():
         options[table_name][option] = DEFAULT_OPTIONS['table'][option]
-
         if option in cmd_line_options:
             options[table_name][option] = cmd_line_options[option]
 

@@ -24,12 +24,13 @@ import re
 import sys
 import time
 
+from datetime import timedelta, datetime
 from boto.exception import JSONResponseError, BotoServerError
 
 from dynamic_dynamodb.aws import dynamodb
 from dynamic_dynamodb.core import gsi, table
 from dynamic_dynamodb.daemon import Daemon
-from dynamic_dynamodb.config_handler import get_global_option, get_table_option
+from dynamic_dynamodb.config_handler import get_global_option, get_table_option, get_configured_rotated_key_names
 from dynamic_dynamodb.log_handler import LOGGER as logger
 
 CHECK_STATUS = {
@@ -106,7 +107,56 @@ def execute():
     boto_server_error_retries = 3
 
     # Ensure provisioning
-    for table_name, table_key in sorted(dynamodb.get_tables_and_gsis()):
+    tables_and_gsis = set( dynamodb.get_tables_and_gsis() )
+    rotated_key_names = get_configured_rotated_key_names()
+    next_table_names = set()
+    for table_name, table_key in sorted(tables_and_gsis):
+        if table_key in rotated_key_names:
+            rotate_suffix = get_table_option(table_key, 'rotate_suffix')
+            rotate_interval = get_table_option(table_key, 'rotate_interval')
+            rotate_scavenge = get_table_option(table_key, 'rotate_scavenge')
+        
+            time_delta = timedelta(seconds=rotate_interval)
+            
+            epoch = datetime.utcfromtimestamp(0)
+            cur_timedelta = datetime.utcnow() - epoch
+    
+            cur_utc_datetime = datetime.utcnow() - timedelta(seconds=(cur_timedelta.total_seconds()%time_delta.total_seconds()))
+            cur_table_name = table_name + cur_utc_datetime.strftime( rotate_suffix )
+            
+            dynamodb.ensure_created( cur_table_name, table_name )
+            tables_and_gsis.add(
+                ( cur_table_name, table_key ) )
+                
+            next_utc_datetime = cur_utc_datetime + time_delta
+            till_next_delta = next_utc_datetime - datetime.utcnow()
+            logger.info( 'next table delta {0} < {1}'.format( till_next_delta.total_seconds(), get_global_option('check_interval') ) )
+            if till_next_delta.total_seconds() < get_global_option( 'check_interval' ):
+                next_utc_time_delta = cur_utc_datetime + time_delta
+                next_table_name = table_name + next_utc_time_delta.strftime( rotate_suffix )
+                dynamodb.ensure_created( next_table_name, table_name )
+                next_table_names.add( ( next_table_name, cur_table_name, table_key ) )
+                            
+            prev_utc_datetime = cur_utc_datetime
+            prev_index = 1
+            while rotate_scavenge == -1 or prev_index < rotate_scavenge:
+                prev_utc_datetime = prev_utc_datetime - time_delta
+                prev_table_name = table_name + prev_utc_datetime.strftime( rotate_suffix )
+                if dynamodb.exists( prev_table_name ):
+                   tables_and_gsis.add( 
+                       ( prev_table_name, table_key ) 
+                   )
+                elif rotate_scavenge == -1:
+                   break
+                   
+                prev_index += 1
+            
+            if rotate_scavenge > 0:
+                delete_utc_datetime = prev_utc_datetime - time_delta
+                delete_table_name = table_name + delete_utc_datetime.strftime( rotate_suffix )
+                dynamodb.ensure_deleted( delete_table_name )          
+            
+    for table_name, table_key in sorted(tables_and_gsis):
         try:
             table_num_consec_read_checks = \
                 CHECK_STATUS['tables'][table_name]['reads']
@@ -213,6 +263,11 @@ def execute():
             else:
                 raise
 
+    for next_table_name, cur_table_name, key_name in next_table_names:
+        cur_table_read_units  = dynamodb.get_provisioned_table_read_units( cur_table_name )
+        cur_table_write_units = dynamodb.get_provisioned_table_write_units( cur_table_name )
+        dynamodb.update_table_provisioning( next_table_name, key_name, cur_table_read_units, cur_table_write_units)
+     
     # Sleep between the checks
     if not get_global_option('run_once'):
         logger.debug('Sleeping {0} seconds until next check'.format(

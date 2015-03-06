@@ -187,6 +187,19 @@ def parse():
         type=int,
         help="""Percentage Value that will cause the num_write_checks_before
             scale_down var to reset back to 0""")
+    rotate_ag = parser.add_argument_group('Rotate table properties')
+    rotate_ag.add_argument(
+        '--rotate-suffix',
+        type=str,
+        help="""Suffix for rotate table names""")
+    rotate_ag.add_argument(
+        '--rotate-interval',
+        type=int,
+        help="""Interval in seconds to rotate the table""")
+    rotate_ag.add_argument(
+        '--rotate-scavenge',
+        type=int,
+        help="""Maximum number of previously rotated tables to keep""")            
     args = parser.parse_args()
 
     # Print the version and quit
