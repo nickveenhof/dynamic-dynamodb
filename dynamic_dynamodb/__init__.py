@@ -117,11 +117,13 @@ def execute():
             rotate_scavenge = get_table_option(table_key, 'rotate_scavenge')
         
             time_delta = timedelta(seconds=rotate_interval)
+            time_delta_totalseconds = rotate_interval
             
             epoch = datetime.utcfromtimestamp(0)
             cur_timedelta = datetime.utcnow() - epoch
-    
-            cur_utc_datetime = datetime.utcnow() - timedelta(seconds=(cur_timedelta.total_seconds()%time_delta.total_seconds()))
+            cur_timedelta_totalseconds = (cur_timedelta.microseconds + (cur_timedelta.seconds + cur_timedelta.days*24*3600) * 1e6) / 1e6
+            
+            cur_utc_datetime = datetime.utcnow() - timedelta(seconds=(cur_timedelta_totalseconds%time_delta_totalseconds))
             cur_table_name = table_name + cur_utc_datetime.strftime( rotate_suffix )
             
             dynamodb.ensure_created( cur_table_name, table_name )
@@ -129,9 +131,10 @@ def execute():
                 ( cur_table_name, table_key ) )
                 
             next_utc_datetime = cur_utc_datetime + time_delta
-            till_next_delta = next_utc_datetime - datetime.utcnow()
-            logger.info( 'next table delta {0} < {1}'.format( till_next_delta.total_seconds(), get_global_option('check_interval') ) )
-            if till_next_delta.total_seconds() < get_global_option( 'check_interval' ):
+            till_next_timedelta = next_utc_datetime - datetime.utcnow()
+            till_next_timedelta_totalseconds = (till_next_timedelta.microseconds + (till_next_timedelta.seconds + till_next_timedelta.days*24*3600) * 1e6) / 1e6
+            logger.info( 'next table delta {0} < {1}'.format( till_next_timedelta_totalseconds, get_global_option('check_interval') ) )
+            if till_next_timedelta_totalseconds < get_global_option( 'check_interval' ):
                 next_utc_time_delta = cur_utc_datetime + time_delta
                 next_table_name = table_name + next_utc_time_delta.strftime( rotate_suffix )
                 dynamodb.ensure_created( next_table_name, table_name )
