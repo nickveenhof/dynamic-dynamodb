@@ -24,7 +24,7 @@ def get_configured_rotated_key_names():
         rotated_key_names = set()
         for key_name in CONFIGURATION['tables'].keys():
             key_config = CONFIGURATION['tables'][key_name]            
-            if 'rotate_suffix' in key_config:
+            if 'rotate_suffix' in key_config and key_config['rotate_suffix'] != None:
                rotated_key_names.add( key_name )
 
         return rotated_key_names                
