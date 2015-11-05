@@ -263,7 +263,7 @@ TABLE_CONFIG_OPTIONS = [
     	'option': 'rotate_scavenge',
     	'required': False,
     	'type': 'int'
-    }    
+    },
     {
         'key': 'lookback_period',
         'option': 'lookback-period',
