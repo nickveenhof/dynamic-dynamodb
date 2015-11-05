@@ -76,7 +76,7 @@ DEFAULT_OPTIONS = {
         'sns_message_types': [],
         'rotate_suffix': None,
         'rotate_interval': None,
-        'rotate_scavenge': None
+        'rotate_scavenge': None,
         'increase_consumed_reads_unit': None,
         'increase_consumed_reads_with': None,
         'increase_consumed_reads_scale': None,
