@@ -1,6 +1,85 @@
 Release notes
 =============
 
+2.2.0
+-----
+
+**Release date:** 2015-10-23
+
+- Circuit breaker a per-table/gsi config option (`#276 <https://github.com/sebdah/dynamic-dynamodb/issues/276>`). Thanks for the pull request `@Sazpaimon <https://github.com/Sazpaimon>`
+- Fix minor spelling and formatting issues (`#278 <https://github.com/sebdah/dynamic-dynamodb/issues/278>`)
+
+2.1.2
+-----
+
+**Release date:** 2015-10-05
+
+- Fix the lower_threshold checking (`#275 <https://github.com/sebdah/dynamic-dynamodb/issues/275>`). Thanks for the pull request `@KyleAlanDavis <https://github.com/KyleAlanDavis>`
+
+2.1.1
+-----
+
+**Release date:** 2015-10-02
+
+- Depend on argparse for Python 2.6 (`#274 <https://github.com/sebdah/dynamic-dynamodb/issues/274>`)
+- Fix import of ordered dicts for Python 2.6 (`#273 <https://github.com/sebdah/dynamic-dynamodb/issues/273>`). Thanks for the pull request `@KyleAlanDavis <https://github.com/KyleAlanDavis>`
+- Fix upscaling reads and writes for GSI (`#271 <https://github.com/sebdah/dynamic-dynamodb/issues/271>`). Thanks for the pull request `@qqshfox <https://github.com/qqshfox>`
+
+2.1.0
+-----
+
+**Release date:** 2015-09-30
+
+- Support for granular downscaling (`#263 <https://github.com/sebdah/dynamic-dynamodb/issues/263>`). Thanks for the pull request `@Sazpaimon <https://github.com/Sazpaimon>`
+- Allow configurable lookback period instead of the hardcoded 5 minute one (`#261 <https://github.com/sebdah/dynamic-dynamodb/issues/261>`). Thanks for the pull request `@Sazpaimon <https://github.com/Sazpaimon>`
+- Don't scale down if it would scale below the current consumed units (`#268 <https://github.com/sebdah/dynamic-dynamodb/issues/261>`). Thanks for the pull request `@Sazpaimon <https://github.com/Sazpaimon>`
+
+2.0.2
+-----
+
+**Release date:** 2015-09-30
+
+- Use HTTP rather than SSH for git clone (`#266 <https://github.com/sebdah/dynamic-dynamodb/issues/266>`). Thanks for the pull request `@superprat <https://github.com/superprat>`
+
+2.0.1
+-----
+
+**Release date:** 2015-09-29
+
+- Fix value error when logging floats (`#265 <https://github.com/sebdah/dynamic-dynamodb/issues/265>`)
+- Fix installation on Python < 2.7 (`#260 <https://github.com/sebdah/dynamic-dynamodb/issues/260>`). Thanks for the pull request `@Sazpaimon <https://github.com/Sazpaimon>`
+
+2.0.0
+-----
+
+**Release date:** 2015-08-26
+
+- Match each table to at most one config section (`#250 <https://github.com/sebdah/dynamic-dynamodb/issues/250>`). Thanks for the pull request `@memory <https://github.com/memory>`
+- Granular up-scaling and new scaling metrics (`#252 <https://github.com/sebdah/dynamic-dynamodb/issues/250>`). Thanks for the pull request `@omnidavez <https://github.com/omnidavez>`
+
+Please note that this change is not backwards compatible due to the nature of `#250 <https://github.com/sebdah/dynamic-dynamodb/issues/250>`. Though it is in a minority of use cases, it may in some cases break existing configuration. Details can be found in the pull request `#251 <https://github.com/sebdah/dynamic-dynamodb/issues/251>`
+
+1.20.6
+------
+
+**Release date:** 2015-06-02
+
+- Logging an AccessDeniedException in dynamodb.update_table_provisioning causing a KeyError (`#247 <https://github.com/sebdah/dynamic-dynamodb/issues/247>`__)
+
+1.20.5
+------
+
+**Release date:** 2015-04-25
+
+- Update cloudformation template to work around pip permissions issue (`#238 <https://github.com/sebdah/dynamic-dynamodb/issues/238>`__). Thanks for the pull request `@jasonrdsouza <https://github.com/jasonrdsouza>`__
+
+1.20.4
+------
+
+**Release date:** 2015-03-17
+
+- Does not scale down when one of the provisoned values is already at the lowest limit (`#237 <https://github.com/sebdah/dynamic-dynamodb/pull/237>`__). Thanks for the pull request `@lcabral37 <https://github.com/lcabral37>`__
+
 1.20.3
 ------
 

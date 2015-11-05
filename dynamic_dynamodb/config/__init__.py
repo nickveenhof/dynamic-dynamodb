@@ -4,6 +4,11 @@ import sys
 from dynamic_dynamodb.config import config_file_parser
 from dynamic_dynamodb.config import command_line_parser
 
+try:
+    from collections import OrderedDict as ordereddict
+except ImportError:
+    from ordereddict import OrderedDict as ordereddict
+
 DEFAULT_OPTIONS = {
     'global': {
         # Command line only
@@ -65,12 +70,35 @@ DEFAULT_OPTIONS = {
         'allow_scaling_down_writes_on_0_percent': False,
         'always_decrease_rw_together': False,
         'lookback_window_start': 15,
+        'lookback_period': 5,
         'maintenance_windows': None,
         'sns_topic_arn': None,
         'sns_message_types': [],
         'rotate_suffix': None,
         'rotate_interval': None,
         'rotate_scavenge': None
+        'increase_consumed_reads_unit': None,
+        'increase_consumed_reads_with': None,
+        'increase_consumed_reads_scale': None,
+        'increase_consumed_writes_unit': None,
+        'increase_consumed_writes_with': None,
+        'increase_consumed_writes_scale': None,
+        'increase_throttled_by_provisioned_reads_unit': None,
+        'increase_throttled_by_provisioned_reads_scale': None,
+        'increase_throttled_by_provisioned_writes_unit': None,
+        'increase_throttled_by_provisioned_writes_scale': None,
+        'increase_throttled_by_consumed_reads_unit': None,
+        'increase_throttled_by_consumed_reads_scale': None,
+        'increase_throttled_by_consumed_writes_unit': None,
+        'increase_throttled_by_consumed_writes_scale': None,
+        'decrease_consumed_reads_unit': None,
+        'decrease_consumed_reads_with': None,
+        'decrease_consumed_reads_scale': None,
+        'decrease_consumed_writes_unit': None,
+        'decrease_consumed_writes_with': None,
+        'decrease_consumed_writes_scale': None,
+        'circuit_breaker_url': None,
+        'circuit_breaker_timeout': 10000.00
     },
     'gsi': {
         'reads-upper-alarm-threshold': 0,
@@ -109,9 +137,26 @@ DEFAULT_OPTIONS = {
         'allow_scaling_down_writes_on_0_percent': False,
         'always_decrease_rw_together': False,
         'lookback_window_start': 15,
+        'lookback_period': 5,
         'maintenance_windows': None,
         'sns_topic_arn': None,
-        'sns_message_types': []
+        'sns_message_types': [],
+        'increase_consumed_reads_unit': None,
+        'increase_consumed_reads_with': None,
+        'increase_consumed_reads_scale': None,
+        'increase_consumed_writes_unit': None,
+        'increase_consumed_writes_with': None,
+        'increase_consumed_writes_scale': None,
+        'increase_throttled_by_provisioned_reads_unit': None,
+        'increase_throttled_by_provisioned_reads_scale': None,
+        'increase_throttled_by_provisioned_writes_unit': None,
+        'increase_throttled_by_provisioned_writes_scale': None,
+        'increase_throttled_by_consumed_reads_unit': None,
+        'increase_throttled_by_consumed_reads_scale': None,
+        'increase_throttled_by_consumed_writes_unit': None,
+        'increase_throttled_by_consumed_writes_scale': None,
+        'circuit_breaker_url': None,
+        'circuit_breaker_timeout': 10000.00
     }
 }
 
@@ -122,7 +167,7 @@ def get_configuration():
     configuration = {
         'global': {},
         'logging': {},
-        'tables': {}
+        'tables': ordereddict()
     }
 
     # Read the command line options
@@ -181,11 +226,11 @@ def __get_cmd_table_options(cmd_line_options):
 def __get_config_table_options(conf_file_options):
     """ Get all table options from the config file
 
-    :type conf_file_options: dict
+    :type conf_file_options: ordereddict
     :param conf_file_options: Dictionary with all config file options
-    :returns: dict -- E.g. {'table_name': {}}
+    :returns: ordereddict -- E.g. {'table_name': {}}
     """
-    options = {}
+    options = ordereddict()
 
     if not conf_file_options:
         return options
@@ -301,7 +346,7 @@ def __get_logging_options(cmd_line_options, conf_file_options=None):
 def __check_gsi_rules(configuration):
     """ Do some basic checks on the configuration """
     for table_name in configuration['tables']:
-        if not 'gsis' in configuration['tables'][table_name]:
+        if 'gsis' not in configuration['tables'][table_name]:
             continue
 
         for gsi_name in configuration['tables'][table_name]['gsis']:
@@ -310,30 +355,74 @@ def __check_gsi_rules(configuration):
             valid_units = ['percent', 'units']
             if gsi['increase_reads_unit'] not in valid_units:
                 print(
-                    'increase-reads-with must be set to '
+                    'increase-reads-unit must be set to '
                     'either percent or units')
                 sys.exit(1)
             if gsi['decrease_reads_unit'] not in valid_units:
                 print(
-                    'decrease-reads-with must be set to '
+                    'decrease-reads-unit must be set to '
                     'either percent or units')
                 sys.exit(1)
             if gsi['increase_writes_unit'] not in valid_units:
                 print(
-                    'increase-writes-with must be set to '
+                    'increase-writes-unit must be set to '
                     'either percent or units')
                 sys.exit(1)
             if gsi['decrease_writes_unit'] not in valid_units:
                 print(
-                    'decrease-writes-with must be set to '
+                    'decrease-writes-unit must be set to '
                     'either percent or units')
+                sys.exit(1)
+            if 'increase_consumed_reads_unit' in gsi and gsi['increase_consumed_reads_unit'] and \
+                    gsi['increase_consumed_reads_unit'] not in valid_units:
+                print(
+                    'increase-consumed-reads-unit must be set to '
+                    'either percent or units, or left unset')
+                sys.exit(1)
+            if 'increase_consumed_writes_unit' in gsi and gsi['increase_consumed_writes_unit'] and \
+                    gsi['increase_consumed_writes_unit'] not in valid_units:
+                print(
+                    'increase-consumed-writes-unit must be set to '
+                    'either percent or units, or left unset')
+                sys.exit(1)
+            if ('increase_throttled_by_consumed_reads_unit' in gsi
+                    and gsi['increase_throttled_by_consumed_reads_unit']
+                    and gsi['increase_throttled_by_consumed_reads_unit']
+                    not in valid_units):
+                print(
+                    'increase-throttled-by-consumed-reads-unit must be set to '
+                    'either percent or units, or left unset')
+                sys.exit(1)
+            if ('increase_throttled_by_consumed_writes_unit' in gsi
+                    and gsi['increase_throttled_by_consumed_writes_unit']
+                    and gsi['increase_throttled_by_consumed_writes_unit']
+                    not in valid_units):
+                print(
+                    'increase-throttled-by-consumed-writes-unit must be set to '
+                    'either percent or units, or left unset')
+                sys.exit(1)
+            if ('increase_throttled_by_provisioned_reads_unit' in gsi
+                    and gsi['increase_throttled_by_provisioned_reads_unit']
+                    and gsi['increase_throttled_by_provisioned_reads_unit']
+                    not in valid_units):
+                print(
+                    'increase-throttled-by-provisioned-reads-unit must be set '
+                    'to either percent or units, or left unset')
+                sys.exit(1)
+            if ('increase_throttled_by_provisioned_writes_unit' in gsi
+                    and gsi['increase_throttled_by_provisioned_writes_unit']
+                    and gsi['increase_throttled_by_provisioned_writes_unit']
+                    not in valid_units):
+                print(
+                    'increase-throttled-by-provisioned-writes-unit must be set '
+                    'to either percent or units, or left unset')
                 sys.exit(1)
 
             # Check lookback-window start
-            if gsi['lookback_window_start'] < 5:
+            if gsi['lookback_window_start'] < 1:
                 print(
-                    'lookback-window-start must be a value higher than 5, '
-                    'as DynamoDB sends CloudWatch data every 5 minutes')
+                    'lookback-window-start must be a value higher than 1, '
+                    'as DynamoDB sends CloudWatch data every minute')
                 sys.exit(1)
 
             # Check sns-message-types
@@ -364,9 +453,32 @@ def __check_gsi_rules(configuration):
                 'max_provisioned_reads',
                 'min_provisioned_writes',
                 'max_provisioned_writes',
+                'increase_consumed_reads_with',
+                'increase_consumed_writes_with',
+                'decrease_consumed_reads_with',
+                'decrease_consumed_writes_with'
             ]
+            # Config options without a mandatory default
+            # should be allowed a None value
+            non_default = [
+                'increase_consumed_reads_with',
+                'increase_consumed_writes_with',
+                'decrease_consumed_reads_with',
+                'decrease_consumed_writes_with'
+            ]
+
             for option in options:
-                if gsi[option] < 1:
+                if (option in non_default
+                        and option in gsi
+                        and gsi[option]
+                        and gsi[option] < 1):
+                    print('{0} may not be lower than 1 for GSI {1}'.format(
+                        option, gsi_name))
+                    sys.exit(1)
+
+                if (option in gsi
+                        and option not in non_default
+                        and gsi[option] < 1):
                     print('{0} may not be lower than 1 for GSI {1}'.format(
                         option, gsi_name))
                     sys.exit(1)
@@ -412,25 +524,71 @@ def __check_table_rules(configuration):
         # Check that increase/decrease units is OK
         valid_units = ['percent', 'units']
         if table['increase_reads_unit'] not in valid_units:
-            print('increase-reads-with must be set to either percent or units')
+            print('increase-reads-unit must be set to either percent or units')
             sys.exit(1)
         if table['decrease_reads_unit'] not in valid_units:
-            print('decrease-reads-with must be set to either percent or units')
+            print('decrease-reads-unit must be set to either percent or units')
             sys.exit(1)
         if table['increase_writes_unit'] not in valid_units:
             print(
-                'increase-writes-with must be set to either percent or units')
+                'increase-writes-unit must be set to either percent or units')
             sys.exit(1)
         if table['decrease_writes_unit'] not in valid_units:
             print(
-                'decrease-writes-with must be set to either percent or units')
+                'decrease-writes-unit must be set to either percent or units')
+            sys.exit(1)
+        if ('increase_consumed_reads_unit' in table
+                and table['increase_consumed_reads_unit']
+                and table['increase_consumed_reads_unit'] not in valid_units):
+            print(
+                'increase-consumed-reads-unit must be set to '
+                'either percent or units, or left unset')
+            sys.exit(1)
+        if ('increase_consumed_writes_unit' in table
+                and table['increase_consumed_writes_unit']
+                and table['increase_consumed_writes_unit'] not in valid_units):
+            print(
+                'increase-consumed-writes-unit must be set to '
+                'either percent or units, or left unset')
+            sys.exit(1)
+        if ('increase_throttled_by_consumed_reads_unit' in table
+                and table['increase_throttled_by_consumed_reads_unit']
+                and table['increase_throttled_by_consumed_reads_unit']
+                not in valid_units):
+            print(
+                'increase-throttled-by-consumed-reads-unit must be set to '
+                'either percent or units, or left unset')
+            sys.exit(1)
+        if ('increase_throttled_by_consumed_writes_unit' in table
+                and table['increase_throttled_by_consumed_writes_unit']
+                and table['increase_throttled_by_consumed_writes_unit']
+                not in valid_units):
+            print(
+                'increase-throttled-by-consumed-writes-unit must be set to '
+                'either percent or units, or left unset')
+            sys.exit(1)
+        if ('increase_throttled_by_provisioned_reads_unit' in table
+                and table['increase_throttled_by_provisioned_reads_unit']
+                and table['increase_throttled_by_provisioned_reads_unit']
+                not in valid_units):
+            print(
+                'increase-throttled-by-provisioned-reads-unit must be set to '
+                'either percent or units, or left unset')
+            sys.exit(1)
+        if ('increase_throttled_by_provisioned_writes_unit' in table
+                and table['increase_throttled_by_provisioned_writes_unit']
+                and table['increase_throttled_by_provisioned_writes_unit']
+                not in valid_units):
+            print(
+                'increase-throttled-by-provisioned-writes-unit must be set to '
+                'either percent or units, or left unset')
             sys.exit(1)
 
         # Check lookback-window start
-        if table['lookback_window_start'] < 5:
+        if table['lookback_window_start'] < 1:
             print(
-                'lookback-window-start must be a value higher than 5, '
-                'as DynamoDB sends CloudWatch data every 5 minutes')
+                'lookback-window-start must be a value higher than 1, '
+                'as DynamoDB sends CloudWatch data every minute')
             sys.exit(1)
 
         # Check sns-message-types
@@ -462,10 +620,28 @@ def __check_table_rules(configuration):
             'min_provisioned_writes',
             'max_provisioned_writes',
             'num_read_checks_before_scale_down',
-            'num_write_checks_before_scale_down'
+            'num_write_checks_before_scale_down',
+            'increase_consumed_reads_with',
+            'increase_consumed_writes_with'
         ]
+        # Config options without a mandatory default
+        # should be allowed a None value
+        non_default = [
+            'increase_consumed_reads_with',
+            'increase_consumed_writes_with'
+        ]
+
         for option in options:
-            if table[option] < 1:
+            if (option in non_default
+                    and option in table
+                    and table[option] and table[option] < 1):
+                print('{0} may not be lower than 1 for table {1}'.format(
+                    option, table_name))
+                sys.exit(1)
+
+            if (option in table
+                    and option not in non_default
+                    and table[option] < 1):
                 print('{0} may not be lower than 1 for table {1}'.format(
                     option, table_name))
                 sys.exit(1)
